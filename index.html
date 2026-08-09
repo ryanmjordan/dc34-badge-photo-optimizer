@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DC34 Badge Photo Optimizer</title>
+  <meta name="description" content="Convert any photo into a 128x128 1-bit dithered PNG for the DEF CON 34 badge — entirely in your browser." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-title">
+      <img src="assets/JURT.png" alt="JURT logo" class="site-logo" />
+      <h1>DC34 Badge Photo Optimizer</h1>
+    </div>
+    <p class="tagline">Turn any photo into a crisp 128&times;128 1-bit image for the DEF CON 34 badge.</p>
+    <p class="privacy-note">🔒 Your photo never leaves your device. Everything runs locally in this browser tab.</p>
+  </header>
+
+  <main>
+    <!-- Upload -->
+    <section id="upload-section" class="panel">
+      <div id="drop-zone" tabindex="0" role="button" aria-label="Upload a photo">
+        <p class="drop-zone-headline">Drop a photo here, or click to choose a file</p>
+        <p class="drop-zone-sub">JPG, PNG, WEBP. HEIC may work depending on your browser.</p>
+        <input type="file" id="file-input" accept="image/*" hidden />
+      </div>
+      <p id="error-message" class="error-message" hidden></p>
+    </section>
+
+    <!-- Editor -->
+    <section id="editor-section" class="panel" hidden>
+      <div class="editor-grid">
+        <!-- Crop column -->
+        <div class="editor-col">
+          <h2>1. Crop</h2>
+          <p class="hint">Drag to move, drag a corner to resize. The crop is always square.</p>
+          <div id="crop-stage">
+            <img id="crop-image" alt="Uploaded photo" />
+            <div class="crop-box" id="crop-box">
+              <div class="crop-handle" data-handle="nw"></div>
+              <div class="crop-handle" data-handle="ne"></div>
+              <div class="crop-handle" data-handle="sw"></div>
+              <div class="crop-handle" data-handle="se"></div>
+            </div>
+          </div>
+          <button id="new-image-btn" class="btn btn-secondary">Choose a different photo</button>
+        </div>
+
+        <!-- Controls column -->
+        <div class="editor-col">
+          <h2>2. Adjust</h2>
+
+          <div class="control-row">
+            <label for="preset-select">Preset</label>
+            <select id="preset-select">
+              <option value="custom">Custom</option>
+              <option value="portrait">Portrait / Face</option>
+              <option value="logo">Logo / Line Art</option>
+              <option value="landscape">Landscape</option>
+            </select>
+          </div>
+
+          <div class="control-row">
+            <label for="algorithm-select">Dither algorithm</label>
+            <select id="algorithm-select">
+              <option value="floyd-steinberg">Floyd–Steinberg</option>
+              <option value="atkinson">Atkinson</option>
+              <option value="stucki">Stucki</option>
+              <option value="bayer">Ordered (Bayer)</option>
+              <option value="threshold">Threshold (no dither)</option>
+            </select>
+          </div>
+
+          <div class="control-row slider-row">
+            <label for="brightness-input">Brightness</label>
+            <input type="range" id="brightness-input" min="-100" max="100" step="1" value="0" />
+            <output for="brightness-input" id="brightness-output">0</output>
+          </div>
+
+          <div class="control-row slider-row">
+            <label for="contrast-input">Contrast</label>
+            <input type="range" id="contrast-input" min="-100" max="100" step="1" value="20" />
+            <output for="contrast-input" id="contrast-output">20</output>
+          </div>
+
+          <div class="control-row slider-row">
+            <label for="gamma-input">Gamma</label>
+            <input type="range" id="gamma-input" min="0.1" max="3" step="0.05" value="1" />
+            <output for="gamma-input" id="gamma-output">1.00</output>
+          </div>
+
+          <div class="control-row slider-row">
+            <label for="black-point-input">Black point</label>
+            <input type="range" id="black-point-input" min="0" max="254" step="1" value="0" />
+            <output for="black-point-input" id="black-point-output">0</output>
+          </div>
+
+          <div class="control-row slider-row">
+            <label for="white-point-input">White point</label>
+            <input type="range" id="white-point-input" min="1" max="255" step="1" value="255" />
+            <output for="white-point-input" id="white-point-output">255</output>
+          </div>
+
+          <div class="control-row checkbox-row">
+            <label for="invert-input">
+              <input type="checkbox" id="invert-input" />
+              Invert (black/white swap)
+            </label>
+          </div>
+
+          <button id="reset-adjustments-btn" class="btn btn-secondary">Reset adjustments</button>
+
+          <h2>3. Preview</h2>
+          <div class="preview-row">
+            <div class="preview-block">
+              <span class="preview-label">1:1 (128&times;128)</span>
+              <canvas id="preview-1x" width="128" height="128" class="pixelated"></canvas>
+            </div>
+            <div class="preview-block">
+              <span class="preview-label">4&times; scale</span>
+              <canvas id="preview-4x" width="128" height="128" class="pixelated preview-4x"></canvas>
+            </div>
+          </div>
+
+          <details id="comparison-details">
+            <summary>Compare all algorithms</summary>
+            <div id="comparison-grid" class="comparison-grid"></div>
+          </details>
+
+          <h2>4. Download</h2>
+          <button id="download-btn" class="btn btn-primary">Download 128&times;128 PNG</button>
+          <p class="hint">Feed the file straight into <code>dc34-image --port COMx --image output.png</code>.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>
+      Built for the DEF CON 34 badge (Baochip bao1x / Xous). Pairs with
+      <a href="https://github.com/bunnie/dc34-image" target="_blank" rel="noopener noreferrer">dc34-image</a>.
+      No accounts, no uploads, no tracking. Powered by JURT.
+    </p>
+  </footer>
+
+  <script src="js/imaging.js"></script>
+  <script src="js/dither.js"></script>
+  <script src="js/cropper.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
