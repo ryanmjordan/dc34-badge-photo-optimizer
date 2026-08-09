@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DC34 Badge Photo Optimizer</title>
-  <meta name="description" content="Convert any photo into a 128x128 1-bit dithered PNG for the DEF CON 34 badge — entirely in your browser." />
+  <meta name="description" content="Convert any photo into a 128x128 1-bit dithered PNG for the DEF CON 34 badge in your browser." />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -13,7 +13,10 @@
       <img src="assets/JURT.png" alt="JURT logo" class="site-logo" />
       <h1>DC34 Badge Photo Optimizer</h1>
     </div>
-    <p class="tagline">Turn any photo into a crisp 128&times;128 1-bit image for the DEF CON 34 badge.</p>
+    <p class="tagline">
+      Turn any photo into a crisp 128&times;128 1-bit image for the DEF CON 34 badge, then send it straight
+      to the badge over USB - no CLI install needed.
+    </p>
     <p class="privacy-note">🔒 Your photo never leaves your device. Everything runs locally in this browser tab.</p>
   </header>
 
@@ -25,6 +28,11 @@
         <p class="drop-zone-sub">JPG, PNG, WEBP. HEIC may work depending on your browser.</p>
         <input type="file" id="file-input" accept="image/*" hidden />
       </div>
+      <p class="hint upload-feature-note">
+        Crop, dither, and preview it here, then either
+        <strong>send it directly to your badge over USB</strong> (Chrome, Edge, or Opera) or download the
+        finished PNG.
+      </p>
       <p id="error-message" class="error-message" hidden></p>
     </section>
 
@@ -128,8 +136,28 @@
             <div id="comparison-grid" class="comparison-grid"></div>
           </details>
 
-          <h2>4. Download</h2>
-          <button id="download-btn" class="btn btn-primary">Download 128&times;128 PNG</button>
+          <h2>4. Send to badge</h2>
+          <p class="hint">
+            On Chrome, Edge, or Opera, you can plug the badge in over USB and send the image straight from
+            this page &mdash; no CLI install needed. Having connection trouble? Try a hard restart of the
+            badge first: unplug the USB cable, press the reset panel on the badge's lower-right edge, wait a
+            few seconds, then reconnect and try again.
+          </p>
+          <div id="serial-controls">
+            <button id="send-serial-btn" class="btn btn-primary">Send to badge (USB)</button>
+            <progress id="serial-progress" max="32" value="0" hidden></progress>
+            <p id="serial-status" class="hint" aria-live="polite"></p>
+            <button id="clear-badge-btn" class="btn btn-secondary">Reset badge to DEF CON logo</button>
+            <p id="serial-unsupported" class="hint" hidden>
+              Direct USB sending needs a Chromium browser (Chrome, Edge, Opera) &mdash; Firefox and Safari
+              don't support Web Serial. Use the download below with the
+              <a href="https://github.com/bunnie/dc34-image" target="_blank" rel="noopener noreferrer">dc34-image</a>
+              CLI instead.
+            </p>
+          </div>
+
+          <h2>5. Or download</h2>
+          <button id="download-btn" class="btn btn-secondary">Download 128&times;128 PNG</button>
           <p class="hint">Feed the file straight into <code>dc34-image --port COMx --image output.png</code>.</p>
         </div>
       </div>
@@ -147,6 +175,7 @@
   <script src="js/imaging.js"></script>
   <script src="js/dither.js"></script>
   <script src="js/cropper.js"></script>
+  <script src="js/serial.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

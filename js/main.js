@@ -30,6 +30,11 @@
     preview4x: document.getElementById("preview-4x"),
     comparisonGrid: document.getElementById("comparison-grid"),
     downloadBtn: document.getElementById("download-btn"),
+    sendSerialBtn: document.getElementById("send-serial-btn"),
+    clearBadgeBtn: document.getElementById("clear-badge-btn"),
+    serialProgress: document.getElementById("serial-progress"),
+    serialStatus: document.getElementById("serial-status"),
+    serialUnsupported: document.getElementById("serial-unsupported"),
   };
 
   const state = {
@@ -343,6 +348,80 @@
       a.remove();
       URL.revokeObjectURL(url);
     }, "image/png");
+  });
+
+  // ---------- send to badge (Web Serial) ----------
+  function setSerialStatus(text, kind) {
+    el.serialStatus.textContent = text;
+    el.serialStatus.classList.remove("status-success", "status-warning", "status-error");
+    if (kind) el.serialStatus.classList.add(`status-${kind}`);
+  }
+
+  function describeSerialError(err) {
+    console.error("Serial error:", err);
+    if (err instanceof WebSerialBadge.SerialUnsupportedError) return err.message;
+    if (err instanceof WebSerialBadge.SerialSendError) {
+      if (err.message === "No port selected.") return err.message;
+      return `${err.message} Try a hard restart of the badge (unplug, press the reset panel on its lower-right edge, reconnect) and try again.`;
+    }
+    if (err && err.name === "NotFoundError") return "No port selected.";
+    if (err && err.name === "NetworkError") {
+      return (
+        "Couldn't open the serial port. Try a hard restart of the badge — unplug the USB cable, " +
+        "press the reset panel on its lower-right edge, wait a few seconds, then reconnect and try " +
+        "again. If that doesn't help, make sure no other program (dc34-image, a terminal, another " +
+        "browser tab) has the port open."
+      );
+    }
+    return (err && err.message) || "Something went wrong talking to the badge — a hard restart of the badge (unplug, press the reset panel, reconnect) is worth trying.";
+  }
+
+  if (!WebSerialBadge.isSupported()) {
+    el.sendSerialBtn.disabled = true;
+    el.clearBadgeBtn.disabled = true;
+    el.serialUnsupported.hidden = false;
+  }
+
+  el.sendSerialBtn.addEventListener("click", async () => {
+    if (!state.dithered) return;
+    el.sendSerialBtn.disabled = true;
+    el.clearBadgeBtn.disabled = true;
+    el.serialProgress.hidden = false;
+    el.serialProgress.value = 0;
+    setSerialStatus("Requesting serial port…");
+    try {
+      const result = await WebSerialBadge.sendImage(state.dithered, (sent, total) => {
+        el.serialProgress.max = total;
+        el.serialProgress.value = sent;
+        setSerialStatus(`Sending chunk ${sent}/${total}…`);
+      });
+      if (result.success) {
+        setSerialStatus("Sent — your badge should now show the new image.", "success");
+      } else {
+        setSerialStatus("All chunks sent, but the badge never confirmed. Check the display.", "warning");
+      }
+    } catch (err) {
+      setSerialStatus(describeSerialError(err), "error");
+    } finally {
+      el.sendSerialBtn.disabled = false;
+      el.clearBadgeBtn.disabled = false;
+      el.serialProgress.hidden = true;
+    }
+  });
+
+  el.clearBadgeBtn.addEventListener("click", async () => {
+    el.sendSerialBtn.disabled = true;
+    el.clearBadgeBtn.disabled = true;
+    setSerialStatus("Requesting serial port…");
+    try {
+      await WebSerialBadge.clearImage();
+      setSerialStatus("Badge reset to the DEF CON logo.", "success");
+    } catch (err) {
+      setSerialStatus(describeSerialError(err), "error");
+    } finally {
+      el.sendSerialBtn.disabled = false;
+      el.clearBadgeBtn.disabled = false;
+    }
   });
 
   // ---------- init ----------
